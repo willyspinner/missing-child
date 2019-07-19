@@ -66,11 +66,11 @@ class Missing_Child_Model:
         self.step = None
 
     # train one batch. Returns the batch loss.
-    def train_one_step(self, batch_fathers, batch_mothers, batch_child_positives, batch_child_negatives):
+    def train_one_step(self, session, batch_fathers, batch_mothers, batch_child_positives, batch_child_negatives):
         if self.step is None:
             self.step = tf.train.AdamOptimizer().minimize(self. loss)
 
-        _, batch_loss = s.run([self.step, self.loss], {self.father_input: batch_fathers, \
+        _, batch_loss = session.run([self.step, self.loss], {self.father_input: batch_fathers, \
             self.mother_input: batch_mothers, self.positive_child_input: batch_child_positives, \
             self.negative_child_input: batch_child_negatives \
         )
