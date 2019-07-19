@@ -20,6 +20,7 @@ class LAEDR_AIM(laedrM.Model):
 class Missing_Child_Model:
     def __init__(self):
         self.LAEDR_model = LAEDR_AIM()
+        self.evaluation_metrics = {}
 
     def initialize(self):
         # inputs. Note: mother and father pair is the anchor.
@@ -93,9 +94,9 @@ class Missing_Child_Model:
             mask = tf.equal(diff, 0) # if any element is 0, that means the child is found.
             child_found_vec =tf.reduce_any(tf.boolean_mask(diff,mask), 1) # see if any child is found.
 
-            self.evaluation_accuracy_score = tf.reduce_mean(child_found_vec)
+            self.evaluation_metrics["top_{}_acc".format(top_n)] = tf.reduce_mean(child_found_vec)
 
-        acc_score = session.run([self.evaluation_accuracy_score ] {self.father_input: batch_fathers,\
+        acc_score = session.run([self.evaluation_metrics["top_{}_acc".format(top_n)]] {self.father_input: batch_fathers,\
             self.mother_input: batch_mothers, self.child_input: batch_children \
         })
 
