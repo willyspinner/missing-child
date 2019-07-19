@@ -1,6 +1,6 @@
 
 
-#TODO
+# TODO
 Things we need to do:
 - [ ] Implement attention layer (Mother / Father look-likedness)
 - [ ] Implement more loss functions if needed (e.g. crossentropy?)
@@ -11,7 +11,7 @@ Things we need to do:
 - [ ]  Design The backend
 - [ ]  Design The frontend
 
-Papers used:
+# Papers used:
 
 Look Across Elapse
 ```
