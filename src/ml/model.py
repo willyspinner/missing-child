@@ -29,7 +29,7 @@ class Missing_Child_Model:
         
         self.positive_child_input = tf.placeholder(np.float32, (None, 128, 128, 3))
         self.negative_child_input = tf.placeholder(np.float32, (None, 128, 128, 3))
-        child_input = tf.placeholder(np.float32, (None,128,128,3))
+        self.child_input = tf.placeholder(np.float32, (None,128,128,3))
 
 
         # value between 0 to 1. Father Likedness = 1 - mother_likedness
@@ -75,9 +75,7 @@ class Missing_Child_Model:
         )
         return batch_loss
 
-    def evaluate_accuracy(self, batch_fathers, batch_mothers, batch_children, top_n = 1):
-        #TODO: some evaluation function to be called with test set. 
-        #Plot in terms of threshold?
+    def evaluate_accuracy(self, session, batch_size, batch_fathers, batch_mothers, batch_children, top_n = 1):
         if self.evaluation_metrics["top_{}_acc".format(top_n)] is None:
             # child_aif is N x D, model_output is N xD as well. 
             # Need N by N matrix. Every model output needs a distance with a real child. Then compute top n.
@@ -89,8 +87,18 @@ class Missing_Child_Model:
             squared_distance_matrix = squared_norms- 2 * tf.matmul(self.model_output, self.child_aif,  transpose_a=False, transpose_b=True)
             distance_matrix = tf.sqrt(squared_distance_matrix)
             candidates = - tf.nn.top_k(- distance_matrix, k=top_n, sorted=True)
-            #TODO: what to do with candidates?  See if it is in the top k. If yes, then hit. If no, then miss?
-        pass
+
+            indices = tf.constant([i for i in range(batch_size)], dtype=np.float32, shape= [batch_size])
+            diff = candidates- indices
+            mask = tf.equal(diff, 0) # if any element is 0, that means the child is found.
+            child_found_vec =tf.reduce_any(tf.boolean_mask(diff,mask), 1) # see if any child is found.
+
+            self.evaluation_accuracy_score = tf.reduce_mean(child_found_vec)
+
+        acc_score = session.run([self.evaluation_accuracy_score ] {self.father_input: batch_fathers,\
+            self.mother_input: batch_mothers, self.child_input: batch_children \
+        })
+
 
 
         
