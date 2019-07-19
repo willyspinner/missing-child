@@ -23,26 +23,24 @@ class Missing_Child_Model:
 
     def initialize(self):
         # inputs. Note: mother and father pair is the anchor.
-        mother_input = tf.placeholder(np.float32, (None, 128, 128, 3))
-        father_input = tf.placeholder(np.float32, (None, 128, 128, 3))
-        
-        positive_child_input = tf.placeholder(np.float32, (None, 128, 128, 3))
-        negative_child_input = tf.placeholder(np.float32, (None, 128, 128, 3))
+        self.mother_input = tf.placeholder(np.float32, (None, 128, 128, 3))
+        self.father_input = tf.placeholder(np.float32, (None, 128, 128, 3))
 
-        self.mother_input = mother_input
-        self.father_input = father_input 
         
-        self.positive_child_input = positive_child_input
-        self.negative_child_input = negative_child_input
+        self.positive_child_input = tf.placeholder(np.float32, (None, 128, 128, 3))
+        self.negative_child_input = tf.placeholder(np.float32, (None, 128, 128, 3))
+        child_input = tf.placeholder(np.float32, (None,128,128,3))
+
 
         # value between 0 to 1. Father Likedness = 1 - mother_likedness
         mother_likedness = tf.placeholder(n.p.float32, (None,))
 
         # extract Age Invariant Features (AIFs) from both mom and dad
-        mother_aif = self.LAEDR_model.encoder(mother_input)
-        father_aif = self.LAEDR_model.encoder(mother_input)
-        positive_child_aif = self.LAEDR_model.encoder(positive_child_input)
-        negative_child_aif = self.LAEDR_model.encoder(negative_child_input)
+        mother_aif = self.LAEDR_model.encoder(self.mother_input)
+        father_aif = self.LAEDR_model.encoder(self.mother_input)
+        positive_child_aif = self.LAEDR_model.encoder(self.positive_child_input)
+        negative_child_aif = self.LAEDR_model.encoder(self.negative_child_input)
+        self.child_aif = self.LAEDR_model.encoder(child_input)
 
         #TODO: attention here
 
@@ -54,6 +52,7 @@ class Missing_Child_Model:
         layer2 = tf.layers.dense(layer1, 30, activation=tf.nn.tanh, use_bias=True)
         layer3 = tf.layers.dense(layer2, 40, activation=tf.nn.tanh, use_bias=True)
         model_output = tf.layers.dense(layer3, laedrNetwork.Z_DIM, activation=tf.nn.tanh, use_bias=True)
+        self.model_output = model_output
 
         # triplet loss on the AIFs 
         # triplet loss as introduced by VGGFACE : Maximising vector distance for unrelated pairs, and minimising otherwise.
@@ -76,9 +75,21 @@ class Missing_Child_Model:
         )
         return batch_loss
 
-    def evaluate_accuracy(self):
+    def evaluate_accuracy(self, batch_fathers, batch_mothers, batch_children, top_n = 1):
         #TODO: some evaluation function to be called with test set. 
         #Plot in terms of threshold?
+        if self.evaluation_metrics["top_{}_acc".format(top_n)] is None:
+            # child_aif is N x D, model_output is N xD as well. 
+            # Need N by N matrix. Every model output needs a distance with a real child. Then compute top n.
+
+            model_output_squared_norms = tf.reduce_sum(tf.math.square(self.model_output), 1)
+            child_aif_squared_norms = tf.reduce_sum(tf.math.square(self.child_aif), 1)
+            squared_norms = model_output_squared_norms + child_aif_squared_norms
+
+            squared_distance_matrix = squared_norms- 2 * tf.matmul(self.model_output, self.child_aif,  transpose_a=False, transpose_b=True)
+            distance_matrix = tf.sqrt(squared_distance_matrix)
+            candidates = - tf.nn.top_k(- distance_matrix, k=top_n, sorted=True)
+            #TODO: what to do with candidates?  See if it is in the top k. If yes, then hit. If no, then miss?
         pass
 
 
