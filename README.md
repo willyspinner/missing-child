@@ -1,5 +1,16 @@
 
 
+#TODO
+Things we need to do:
+- [ ] Implement attention layer (Mother / Father look-likedness)
+- [ ] Implement more loss functions if needed (e.g. crossentropy?)
+- [ ] Visualize using tensorboard.
+- [ ]  Finish train_model.py  and model.py
+- [ ] Implement data loader class to load images from FIW / other dataset
+- [ ] Implement algorithm to sample (MF-C) pairs used in triplet pairs
+- [ ]  Design The backend
+- [ ]  Design The frontend
+
 Papers used:
 
 Look Across Elapse

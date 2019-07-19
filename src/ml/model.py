@@ -1,8 +1,7 @@
-#!/usr/bin/env python
-
 from laedr import modeleag as laedrM
 from laedr import network as laedrNetwork
 import tensorflow as tf
+import numpy as np
 
 pretrainedLaedrModelPath = './laedr/model/'
 
@@ -23,18 +22,27 @@ class Missing_Child_Model:
         self.LAEDR_model = LAEDR_AIM()
 
     def initialize(self):
-        # inputs
+        # inputs. Note: mother and father pair is the anchor.
         mother_input = tf.placeholder(np.float32, (None, 128, 128, 3))
         father_input = tf.placeholder(np.float32, (None, 128, 128, 3))
-        child_input = tf.placeholder(np.float32, (None, 128, 128, 3))
+        
+        positive_child_input = tf.placeholder(np.float32, (None, 128, 128, 3))
+        negative_child_input = tf.placeholder(np.float32, (None, 128, 128, 3))
+
+        self.mother_input = mother_input
+        self.father_input = father_input 
+        
+        self.positive_child_input = positive_child_input
+        self.negative_child_input = negative_child_input
 
         # value between 0 to 1. Father Likedness = 1 - mother_likedness
         mother_likedness = tf.placeholder(n.p.float32, (None,))
 
-        # extract age invariant features from both mom and dad
+        # extract Age Invariant Features (AIFs) from both mom and dad
         mother_aif = self.LAEDR_model.encoder(mother_input)
         father_aif = self.LAEDR_model.encoder(mother_input)
-        child_aif = self.LAEDR_model.encoder(child_input)
+        positive_child_aif = self.LAEDR_model.encoder(positive_child_input)
+        negative_child_aif = self.LAEDR_model.encoder(negative_child_input)
 
         #TODO: attention here
 
@@ -47,17 +55,37 @@ class Missing_Child_Model:
         layer3 = tf.layers.dense(layer2, 40, activation=tf.nn.tanh, use_bias=True)
         model_output = tf.layers.dense(layer3, laedrNetwork.Z_DIM, activation=tf.nn.tanh, use_bias=True)
 
-        # compute the loss 
-        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=input_y))
+        # triplet loss on the AIFs 
+        # triplet loss as introduced by VGGFACE : Maximising vector distance for unrelated pairs, and minimising otherwise.
+        d_pos = tf.reduce_sum(tf.square(model_output- positive_child_aif), 1)
+        d_neg = tf.reduce_sum(tf.square(anchor_output - negative_child_aif), 1)
+        triplet_loss_margin = tf.Variable(0.01, name="triplet_loss_margin")
+        triplet_loss = tf.maximum(0., triplet_loss_margin + d_pos - d_neg)
 
-        step = tf.train.AdamOptimizer().minimize(loss)
+        self.loss = triplet_loss
+        self.step = None
+
+    # train one batch. Returns the batch loss.
+    def train_one_step(self, batch_fathers, batch_mothers, batch_child_positives, batch_child_negatives):
+        if self.step is None:
+            self.step = tf.train.AdamOptimizer().minimize(self. loss)
+
+        _, batch_loss = s.run([self.step, self.loss], {self.father_input: batch_fathers, \
+            self.mother_input: batch_mothers, self.positive_child_input: batch_child_positives, \
+            self.negative_child_input: batch_child_negatives \
+        )
+        return batch_loss
+
+    def evaluate_accuracy(self):
+        #TODO: some evaluation function to be called with test set. 
+        #Plot in terms of threshold?
+        pass
+
+
+        
+
     
 
-# triplet loss as said by VGGFACE : Maximising vector distance for unrelated pairs, and minimising otherwise.
-def triplet_loss():
-    #TODO.
-    # Maybe see: https://github.com/omoindrot/tensorflow-triplet-loss/blob/master/model/triplet_loss.py
-    pass
 
 
 
