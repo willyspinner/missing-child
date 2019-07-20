@@ -25,6 +25,9 @@ class Missing_Child_Model:
         self.evaluation_metrics = {}
         self.step = None
 
+        self.top_k_cache_id = None
+        self.top_k = None
+        self.top_k_cache = None
 
 
     def forward_pass(self, batch_fathers, batch_mothers, mother_likedness_array):
@@ -48,6 +51,9 @@ class Missing_Child_Model:
         model_output = tf.layers.dense(layer3, laedrNetwork.Z_DIM, activation=tf.nn.tanh, use_bias=True)
         return model_output
 
+    def compute_cxent_loss(self, batch_fathers):
+        #TODO?
+        pass
 
     def compute_rmse_loss(self, batch_fathers, batch_mothers, mother_likedness_array, batch_children):
         model_output = self.forward_pass(batch_fathers, batch_mothers, mother_likedness_array)
@@ -85,14 +91,21 @@ class Missing_Child_Model:
 
 
 
-
     #TODO: should optimize on caching the accuracy matrices.
     #IDEA: implement an 'id' variable to use or invalidate the cache.
     # the id could be like (in this case ) the 'epoch' number, etc.
-    def evaluate_accuracy(self, batch_size, batch_fathers, batch_mothers, mother_likedness_array, batch_children, top_n = 1):
+    def evaluate_accuracy(self, batch_size, batch_fathers, batch_mothers, mother_likedness_array, batch_children, top_n = 1, cache_id=None):
+        if cache_id is None \
+        or cache_id != self.top_k_cache_id \
+        or self.top_k < top_n \
+        or cache_id != self.top_k_cache_id:
+            # recompute the diff array ( N x N array of 0 (child not found) and 1s (child found)
+            self.top_k = top_n
+            self.top_k_cache_id = cache_id
+
             child_aif = self.LAEDR_model.encoder(batch_children)
             tf.stop_gradient(child_aif)
-            # child_aif is N x D, model_output is N xD as well. 
+            # child_aif is N x D, model_output is N x D as well. 
             # Need N by N matrix. Every model output needs a distance with a real child. Then compute top n.
 
             model_output = self.forward_pass(batch_fathers, batch_mothers, mother_likedness_array)
@@ -112,11 +125,18 @@ class Missing_Child_Model:
             diff = candidates - indices
 
             diff = tf.equal(diff, 0) # if any element is 0, that means the child is found.
-            child_found_vec =tf.reduce_any(diff, 1) # see if any child is found.
-            child_found_vec = tf.cast(child_found_vec, np.float32)
-            acc_score = tf.reduce_mean(child_found_vec)
+            self.top_k_cache = diff
+        else:
+            # use cache.
+            diff = self.top_k_cache
+            if top_n < self.top_k:
+                diff = diff[: , :top_n]
 
-            return acc_score
+        child_found_vec =tf.reduce_any(diff, 1) # see if any child is found.
+        child_found_vec = tf.cast(child_found_vec, np.float32)
+        acc_score = tf.reduce_mean(child_found_vec)
+
+        return acc_score
 
         
 
