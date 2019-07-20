@@ -1,4 +1,4 @@
-import layers2 as L 
+from . import layers2 as L 
 import tensorflow as tf 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth=True
@@ -262,7 +262,7 @@ class Saver():
 				print('Checkpoint:', last_ckpt)
 				if last_ckpt is None:
 					print('No model found in checkpoint.')
-					print('Model will auto-initialize after first iteration.')
+					print("please train the feature extractor model first.")
 				self.ckpt.restore(last_ckpt)
 			else:
 				self.ckpt.restore(path)
