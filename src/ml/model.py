@@ -52,7 +52,7 @@ class Missing_Child_Model:
         return model_output
 
     def compute_cxent_loss(self, batch_fathers):
-        #TODO?
+        #TODO? Should we do this at all?
         pass
 
     def compute_rmse_loss(self, batch_fathers, batch_mothers, mother_likedness_array, batch_children):
