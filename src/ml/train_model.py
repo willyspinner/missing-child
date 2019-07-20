@@ -5,7 +5,7 @@ import tensorflow as tf
 import mock_data_loader
 
 EPOCHS = 5000
-BATCHES_PER_EPOCH = 100
+BATCHES_PER_EPOCH = 10
 BATCH_SIZE = 30 # this is the amount of samples, where each consists of 1 M, 1 F, 1 C_P  1C_N . 
 
 
@@ -21,7 +21,7 @@ if __name__=='__main__':
         for j in range(BATCHES_PER_EPOCH):
             
             # TEMP: mock data loading
-            bf, bm, m_array, bcp, bcn= mock_data_loader.load_training_batch(BATCH_SIZE)
+            bf, bm, m_array, bcp, bcn= mock_data_loader.load_train_batch(BATCH_SIZE)
             batch_loss = mcm.train_one_step(optimizer, \
                 bf, \
                 bm, \
@@ -31,18 +31,20 @@ if __name__=='__main__':
             )
             print("epoch {}, batch # {}, loss {}".format(i, j, batch_loss))
 
-        # TODO: load test batch here.
-        #TODO: should optimize on caching the accuracy matrices.
-        #IDEA: implement an 'id' variable to use or invalidate the cache.
-        # the id could be like (in this case ) the 'epoch' number, etc.
 
+        bf, bm, m_array, bc = mock_data_loader.load_test_batch(BATCH_SIZE)
         # top 5
-        #mcm.evaluate_accuracy(BATCH_SIZE, ..., top_n = 5)
+        top_5_acc = mcm.evaluate_accuracy(BATCH_SIZE, bf, bm, m_array, bc, top_n = 5)
 
         # top 2
-        #mcm.evaluate_accuracy(BATCH_SIZE, ..., top_n = 2)
+        top_2_acc = mcm.evaluate_accuracy(BATCH_SIZE, bf, bm, m_array, bc, top_n = 2)
 
         # top 1
-        #mcm.evaluate_accuracy(BATCH_SIZE, ..., top_n = 1)
+        top_1_acc = mcm.evaluate_accuracy(BATCH_SIZE, bf, bm, m_array, bc, top_n = 1)
+        print("TOP-5 ACC: {}, TOP-2 ACC: {}, TOP-1 ACC: {}".format( \
+            top_5_acc, \
+            top_2_acc, \
+            top_1_acc  \
+        ))
 
         # TODO: After BATCH_SIZE batches, visualise some stuff here using tensorboard?

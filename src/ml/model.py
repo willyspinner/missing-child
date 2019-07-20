@@ -2,6 +2,7 @@ from laedr import modeleag as laedrM
 from laedr import network as laedrNetwork
 import tensorflow as tf
 import numpy as np
+import sys
 
 pretrainedLaedrModelPath = './laedr/model/'
 
@@ -47,7 +48,6 @@ class Missing_Child_Model:
         model_output = tf.layers.dense(layer3, laedrNetwork.Z_DIM, activation=tf.nn.tanh, use_bias=True)
         return model_output
 
-    # TODO: also try RMSE loss of  the output and the child's AIF
 
     def compute_rmse_loss(self, batch_fathers, batch_mothers, mother_likedness_array, batch_children):
         model_output = self.forward_pass(batch_fathers, batch_mothers, mother_likedness_array)
@@ -67,8 +67,15 @@ class Missing_Child_Model:
 
         return triplet_loss
 
+
+    # ANOTHER IDEA: classification cxent loss above some distance similarity threshold.
+    #i.e. if a vector is less than 0.4 distance units, then classified positive. Else negative.
+
+
+
     # train one batch. Returns the batch loss.
     def train_one_step(self, optimizer, batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives):
+    # TODO: also try RMSE loss of  the output and the child's AIF
         runner = optimizer.minimize(lambda: self.compute_triplet_loss(batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives))
         #TODO: for some reason, 'runner' here is None. Why? Aren't we supposed to run to update the gradients?
         #batch_loss = runner.run()
@@ -76,6 +83,12 @@ class Missing_Child_Model:
         return batch_loss
 
 
+
+
+
+    #TODO: should optimize on caching the accuracy matrices.
+    #IDEA: implement an 'id' variable to use or invalidate the cache.
+    # the id could be like (in this case ) the 'epoch' number, etc.
     def evaluate_accuracy(self, batch_size, batch_fathers, batch_mothers, mother_likedness_array, batch_children, top_n = 1):
             child_aif = self.LAEDR_model.encoder(batch_children)
             tf.stop_gradient(child_aif)
@@ -90,12 +103,17 @@ class Missing_Child_Model:
 
             squared_distance_matrix = squared_norms- 2 * tf.matmul(model_output, child_aif,  transpose_a=False, transpose_b=True)
             distance_matrix = tf.sqrt(squared_distance_matrix)
-            candidates = - tf.nn.top_k(- distance_matrix, k=top_n, sorted=True)
+            _, candidates = tf.nn.top_k(tf.negative(distance_matrix), k=top_n, sorted=True)
+            indices = tf.constant([i for i in range(batch_size)], dtype=np.int32, shape= [batch_size])
+            indices = tf.reshape(indices, [30, 1])
+            # i am paranoid so I put the below. You don't need it because broadcasting i
+            # is implicit.
+            indices = tf.broadcast_to(indices, tf.shape(candidates))
+            diff = candidates - indices
 
-            indices = tf.constant([i for i in range(batch_size)], dtype=np.float32, shape= [batch_size])
-            diff = candidates- indices
-            mask = tf.equal(diff, 0) # if any element is 0, that means the child is found.
-            child_found_vec =tf.reduce_any(tf.boolean_mask(diff,mask), 1) # see if any child is found.
+            diff = tf.equal(diff, 0) # if any element is 0, that means the child is found.
+            child_found_vec =tf.reduce_any(diff, 1) # see if any child is found.
+            child_found_vec = tf.cast(child_found_vec, np.float32)
             acc_score = tf.reduce_mean(child_found_vec)
 
             return acc_score
