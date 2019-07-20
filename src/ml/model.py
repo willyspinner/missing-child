@@ -91,9 +91,8 @@ class Missing_Child_Model:
 
 
 
-    #TODO: should optimize on caching the accuracy matrices.
-    #IDEA: implement an 'id' variable to use or invalidate the cache.
-    # the id could be like (in this case ) the 'epoch' number, etc.
+    # evaluate the top k accuracy of our model. If the child is in the top k most similar results, then we got it right.
+    # this implements caching, so we can just compute the bulk of the operations once to measure the top 10, top 5 , top 2 etc. of a specific batch. The cache is invalidated by cache_id, or if the top_k is higher than what was cached.
     def evaluate_accuracy(self, batch_size, batch_fathers, batch_mothers, mother_likedness_array, batch_children, top_n = 1, cache_id=None):
         if cache_id is None \
         or cache_id != self.top_k_cache_id \
@@ -118,7 +117,7 @@ class Missing_Child_Model:
             distance_matrix = tf.sqrt(squared_distance_matrix)
             _, candidates = tf.nn.top_k(tf.negative(distance_matrix), k=top_n, sorted=True)
             indices = tf.constant([i for i in range(batch_size)], dtype=np.int32, shape= [batch_size])
-            indices = tf.reshape(indices, [30, 1])
+            indices = tf.reshape(indices, [batch_size, 1])
             # i am paranoid so I put the below. You don't need it because broadcasting i
             # is implicit.
             indices = tf.broadcast_to(indices, tf.shape(candidates))

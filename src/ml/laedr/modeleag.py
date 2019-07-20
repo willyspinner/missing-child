@@ -1,4 +1,4 @@
-from . import layers2 as L 
+import layers2 as L
 import tensorflow as tf 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth=True

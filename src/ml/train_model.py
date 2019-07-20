@@ -6,7 +6,7 @@ import mock_data_loader
 
 EPOCHS = 5000
 BATCHES_PER_EPOCH = 10
-BATCH_SIZE = 30 # this is the amount of samples, where each consists of 1 M, 1 F, 1 C_P  1C_N . 
+BATCH_SIZE = 50 # this is the amount of samples, where each consists of 1 M, 1 F, 1 C_P  1C_N . 
 
 
 if __name__=='__main__':
@@ -34,13 +34,13 @@ if __name__=='__main__':
 
         bf, bm, m_array, bc = mock_data_loader.load_test_batch(BATCH_SIZE)
         # top 5
-        top_5_acc = mcm.evaluate_accuracy(BATCH_SIZE, bf, bm, m_array, bc, top_n = 5, cache_id="top5_ep-{}".format(i))
+        top_5_acc = mcm.evaluate_accuracy(BATCH_SIZE, bf, bm, m_array, bc, top_n = 5, cache_id="ep-{}".format(i))
 
         # top 2
-        top_2_acc = mcm.evaluate_accuracy(BATCH_SIZE, bf, bm, m_array, bc, top_n = 2, cache_id="top2_ep-{}".format(i))
+        top_2_acc = mcm.evaluate_accuracy(BATCH_SIZE, bf, bm, m_array, bc, top_n = 2, cache_id="ep-{}".format(i))
 
         # top 1
-        top_1_acc = mcm.evaluate_accuracy(BATCH_SIZE, bf, bm, m_array, bc, top_n = 1, cache_id="top1_ep-{}".format(i))
+        top_1_acc = mcm.evaluate_accuracy(BATCH_SIZE, bf, bm, m_array, bc, top_n = 1, cache_id="ep-{}".format(i))
         print("TOP-5 ACC: {}, TOP-2 ACC: {}, TOP-1 ACC: {}".format( \
             top_5_acc, \
             top_2_acc, \
