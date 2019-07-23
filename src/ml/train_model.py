@@ -2,7 +2,7 @@
 
 from model import Missing_Child_Model
 import tensorflow as tf
-import mock_data_loader
+import data_loader
 
 EPOCHS = 5000
 BATCHES_PER_EPOCH = 10
@@ -15,16 +15,16 @@ if __name__=='__main__':
     mcm = Missing_Child_Model()
 
     optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+    data_loader = data_reader()
+    data_loader.set_traintest_split(0.7)
 
-    mock_data_loader.set_traintest_split(0.7)
     summary_writer = tf.contrib.summary.create_file_writer(tboard_logdir, flush_millis=4000)
     with summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
         for i in range(EPOCHS):
             avg_triplet_loss = 0
             for j in range(BATCHES_PER_EPOCH):
-                
-                # TEMP: mock data loading
-                bf, bm, m_array, bcp, bcn= mock_data_loader.load_train_batch(BATCH_SIZE)
+              	bf, bm, m_array, bcp, bcn = data_loader.get_next_train_batch(BATCH_SIZE)
+
                 batch_loss = mcm.train_one_step(optimizer, \
                     bf, \
                     bm, \
@@ -37,7 +37,7 @@ if __name__=='__main__':
             avg_triplet_loss /= (BATCHES_PER_EPOCH * 1.0)
 
 
-            bf, bm, m_array, bc = mock_data_loader.load_test_batch(BATCH_SIZE)
+            bf, bm, m_array, bc = data_loader.get_next_test_batch(BATCH_SIZE)
             # top 5
             top_5_acc = mcm.evaluate_accuracy(BATCH_SIZE, bf, bm, m_array, bc, top_n = 5, cache_id="ep-{}".format(i))
 
