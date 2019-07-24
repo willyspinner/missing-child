@@ -126,7 +126,7 @@ class conv2D(Layer):
 				x_init = tf.nn.conv2d(self.x,self.W,stride,pad,dilations=dilation_rate)
 				m_init, v_init = tf.nn.moments(x_init,[0,1,2])
 				s_init = 1. / tf.sqrt(v_init + 1e-8)
-				s = tf.get_variable('weight_scale',dtype=tf.float32,initializer=s_init)
+				s = tf.compat.v1.get_variable('weight_scale',dtype=tf.float32,initializer=s_init)
 				self.S = s.initialized_value()
 				self.S = tf.reshape(self.S,[1,1,1,outchn])
 				self.W = self.S *self.W

@@ -25,6 +25,8 @@ class EncoderNet(M.Model):
 		x = self.c4(x)
 		x = self.c5(x)
 		x = self.fc(M.flatten(x))
+                x = tf.clip_by_norm(x, 5.0, axes=[1])
+                result = tf.nn.tanh(x)
 		return tf.nn.tanh(x) 
 
 class DecoderNet(M.Model):
@@ -188,6 +190,7 @@ def applyGrad(losses, AIM, optim, tape):
 	# grads = tape.gradient(losses[0], variables[0])
 
 	# optim.apply_gradients(zip(grads, variables[0]))
+
 
 	for g,v in zip(grads, variables):
 		optim.apply_gradients(M.zip_grad(g,v))

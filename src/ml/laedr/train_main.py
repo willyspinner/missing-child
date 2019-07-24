@@ -27,6 +27,8 @@ if __name__=='__main__':
 	AIM_model = AIM()
 
 	optim = tf.train.AdamOptimizer(0.0001)
+        optim = tf.contrib.estimator.clip_gradients_by_norm(optim, clip_norm=4.0)
+
 	saver = M.Saver(AIM_model, optim)
 	saver.restore('./model/')
 

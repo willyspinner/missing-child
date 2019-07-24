@@ -1,8 +1,8 @@
-import layers2 as L
+import layers2 as L 
 import tensorflow as tf 
-config = tf.ConfigProto()
+config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth=True
-tf.enable_eager_execution(config=config)
+tf.compat.v1.enable_eager_execution(config=config)
 import numpy as np 
 import os 
 import random
@@ -242,9 +242,9 @@ class Saver():
 		self.obj.m = self.mod
 		self.optim = optim 
 		if optim is None:
-			self.ckpt = tf.train.Checkpoint(model=self.obj, optimizer_step=tf.train.get_or_create_global_step())
+			self.ckpt = tf.train.Checkpoint(model=self.obj, optimizer_step=tf.compat.v1.train.get_or_create_global_step())
 		else:
-			self.ckpt = tf.train.Checkpoint(optimizer=optim, model=self.obj, optimizer_step=tf.train.get_or_create_global_step())
+			self.ckpt = tf.train.Checkpoint(optimizer=optim, model=self.obj, optimizer_step=tf.compat.v1.train.get_or_create_global_step())
 	
 	def save(self, path):
 		print('Saving model to path:',path)
@@ -262,11 +262,11 @@ class Saver():
 				print('Checkpoint:', last_ckpt)
 				if last_ckpt is None:
 					print('No model found in checkpoint.')
-					print("please train the feature extractor model first.")
+					print('Model will auto-initialize after first iteration.')
 				self.ckpt.restore(last_ckpt)
 			else:
 				self.ckpt.restore(path)
-			print('Finish loading.')
+			print('Finish loading missing child model.')
 		except Exception as e:
 			print('Model restore failed, Exception:',e)
 			print('Model will auto-initialize after first iteration.')

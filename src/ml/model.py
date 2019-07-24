@@ -1,3 +1,4 @@
+from __future__ import print_function
 from laedr import modeleag as laedrM
 from laedr import network as laedrNetwork
 import tensorflow as tf
@@ -9,11 +10,7 @@ pretrainedLaedrModelPath = './laedr/model/'
 class LAEDR_AIM(laedrM.Model):
     def initialize(self):
         self.encoder = laedrNetwork.EncoderNet()
-        self.decoder = laedrNetwork.DecoderNet()
-        self.dis_z = laedrNetwork.DiscriminatorZ()
-        self.age_classifier = laedrNetwork.AgeClassifier() 
-        self.dis_img = laedrNetwork.DiscriminatorPatch()
-        optim_default = tf.train.AdamOptimizer(0.0001)
+        optim_default = tf.compat.v1.train.AdamOptimizer(0.0001)
         saver = laedrM.Saver(self, optim_default)
         saver.restore(pretrainedLaedrModelPath)
 
@@ -23,7 +20,6 @@ class Missing_Child_Model:
     def __init__(self):
         self.LAEDR_model = LAEDR_AIM()
         self.evaluation_metrics = {}
-        self.step = None
 
         self.top_k_cache_id = None
         self.top_k = None
@@ -36,8 +32,8 @@ class Missing_Child_Model:
         mother_aif = self.LAEDR_model.encoder(batch_mothers)
         father_aif = self.LAEDR_model.encoder(batch_fathers)
         # stop gradient so that we don't backpropagate till here.
-        tf.stop_gradient(mother_aif)
-        tf.stop_gradient(father_aif)
+        mother_aif = tf.stop_gradient(mother_aif)
+        father_aif = tf.stop_gradient(father_aif)
 
         #TODO: implement attention here
 
@@ -45,10 +41,11 @@ class Missing_Child_Model:
         mf_aif_concatted = tf.concat([mother_aif, father_aif], 1)
 
         # this is the input-output NN. Matches mom and dad concated
-        layer1 = tf.layers.dense(mf_aif_concatted, 40, activation=tf.nn.tanh, use_bias=True)
-        layer2 = tf.layers.dense(layer1, 30, activation=tf.nn.tanh, use_bias=True)
-        layer3 = tf.layers.dense(layer2, 40, activation=tf.nn.tanh, use_bias=True)
-        model_output = tf.layers.dense(layer3, laedrNetwork.Z_DIM, activation=tf.nn.tanh, use_bias=True)
+        layer1 = tf.layers.dense(mf_aif_concatted, 60, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
+        layer1 = tf.layers.dense(mf_aif_concatted, 40, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
+        layer2 = tf.layers.dense(mf_aif_concatted, 35, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
+        layer3 = tf.layers.dense(mf_aif_concatted, 40, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
+        model_output = tf.layers.dense(layer3, laedrNetwork.Z_DIM, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
         return model_output
 
     def compute_cxent_loss(self, batch_fathers):
@@ -61,15 +58,19 @@ class Missing_Child_Model:
 
 
     def compute_triplet_loss(self, batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives):
-        positive_child_aifs = self.LAEDR_model.encoder(batch_child_positives)
-        negative_child_aifs = self.LAEDR_model.encoder(batch_child_negatives)
-        model_output = self.forward_pass(batch_fathers, batch_mothers, mother_likedness_array)
+        positive_child_aifs = tf.math.l2_normalize(self.LAEDR_model.encoder(batch_child_positives), axis=1)
+        negative_child_aifs = tf.math.l2_normalize(self.LAEDR_model.encoder(batch_child_negatives), axis=1)
+        model_output = tf.math.l2_normalize(self.forward_pass(batch_fathers, batch_mothers, mother_likedness_array), axis=1)
         # triplet loss on the AIFs 
         # triplet loss as introduced by VGGFACE : Maximising vector distance for unrelated pairs, and minimising otherwise.
+
         d_pos = tf.reduce_sum(tf.square(model_output - positive_child_aifs), 1)
         d_neg = tf.reduce_sum(tf.square(model_output - negative_child_aifs), 1)
+
         triplet_loss_margin = tf.Variable(0.01, name="triplet_loss_margin")
-        triplet_loss = tf.maximum(0., triplet_loss_margin + tf.reduce_sum(d_pos - d_neg))
+
+        triplet_loss = tf.maximum(0., triplet_loss_margin + d_pos - d_neg)
+        triplet_loss = tf.reduce_mean(triplet_loss)
 
         return triplet_loss
 
@@ -82,10 +83,15 @@ class Missing_Child_Model:
     # train one batch. Returns the batch loss.
     def train_one_step(self, optimizer, batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives):
     # TODO: also try RMSE loss of  the output and the child's AIF
+        """
         runner = optimizer.minimize(lambda: self.compute_triplet_loss(batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives))
-        #TODO: for some reason, 'runner' here is None. Why? Aren't we supposed to run to update the gradients?
-        #batch_loss = runner.run()
         batch_loss = self.compute_triplet_loss(batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives)
+        """
+        gradients, variables = zip(*optimizer.compute_gradients(lambda: self.compute_triplet_loss(batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives)))
+        gradients, _ = tf.clip_by_global_norm(gradients, 5.0)
+        optimizer.apply_gradients(zip(gradients, variables))
+        batch_loss = self.compute_triplet_loss(batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives)
+
         return batch_loss
 
 

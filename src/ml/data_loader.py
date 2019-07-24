@@ -132,10 +132,13 @@ class Data_reader():
 		self.trainData = []
 		self.testData = []
 
+        def process_image(self, img):
+            return np.float32(img) / 127.5 - 1.
+
 	def set_traintest_split(self,split = 0.7):
 		total_dataSize = len(self.data)
-		self.trainData = self.data[0: math.floor(total_dataSize * split)]
-		self.testData = self.data[math.ceil(total_dataSize * split): total_dataSize]
+		self.trainData = self.data[0: int(math.floor(total_dataSize * split))]
+		self.testData = self.data[int(math.ceil(total_dataSize * split)): total_dataSize]
 
 	def load_data(self):
 		print('Loading data...')
@@ -154,6 +157,7 @@ class Data_reader():
 				for i in glob.glob("./data/TSKinFace_Data/TSKinFace_Cropped/" + relation + "/" + relation + "-" + str(j) + "-*.jpg"):
 					img = cv2.cv2.imread(i)
 					img = cv2.cv2.resize(img, (128, 128))
+                                        img = self.process_image(img)
 					i = i.split('/')[-1]
 					i = i.split('.')[0]
 					i = i.split('-')
@@ -173,7 +177,10 @@ class Data_reader():
 					imgPath = './data/TSKinFace_Data/TSKinFace_Cropped/' + rel + '/' + rel + "-" + str(rand_idx) + "-" + child_role + ".jpg"
 					neg_child_img = cv2.cv2.imread(imgPath)
 					neg_child_img = cv2.cv2.resize(neg_child_img, (128, 128))
-					neg_children.append(neg_child_img)
+                                        neg_child_img = self.process_image(neg_child_img)
+
+					neg_children = neg_child_img
+                                        break
 				data.append([father, mother, mother_likedness, pos_child, neg_children])
 			self.data = data
 			print('Load finished.')
