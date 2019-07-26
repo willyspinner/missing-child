@@ -31,9 +31,10 @@ class Missing_Child_Model:
         # extract Age Invariant Features (AIFs) from both mom and dad
         mother_aif = self.LAEDR_model.encoder(batch_mothers)
         father_aif = self.LAEDR_model.encoder(batch_fathers)
-        # stop gradient so that we don't backpropagate till here.
-        mother_aif = tf.stop_gradient(mother_aif)
-        father_aif = tf.stop_gradient(father_aif)
+        if os.getenv("ALLOW_GRADIENT_ENCODER") is None:
+            # stop gradient so that we don't backpropagate till here.
+            mother_aif = tf.stop_gradient(mother_aif)
+            father_aif = tf.stop_gradient(father_aif)
 
         #TODO: implement attention here
 
@@ -41,11 +42,12 @@ class Missing_Child_Model:
         mf_aif_concatted = tf.concat([mother_aif, father_aif], 1)
 
         # this is the input-output NN. Matches mom and dad concated
-        layer1 = tf.layers.dense(mf_aif_concatted, 60, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
-        layer1 = tf.layers.dense(mf_aif_concatted, 40, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
-        layer2 = tf.layers.dense(mf_aif_concatted, 35, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
-        layer3 = tf.layers.dense(mf_aif_concatted, 40, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
-        model_output = tf.layers.dense(layer3, laedrNetwork.Z_DIM, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
+        layer1 = tf.layers.dense(mf_aif_concatted, 90, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
+        layer2 = tf.layers.dense(layer1, 80, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
+        layer3 = tf.layers.dense(layer2, 75, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
+        layer4 = tf.layers.dense(layer3, 60, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
+        layer5 = tf.layers.dense(layer4, 55, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
+        model_output = tf.layers.dense(layer5, laedrNetwork.Z_DIM, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.01), activation=tf.nn.tanh, use_bias=True)
         return model_output
 
     def compute_cxent_loss(self, batch_fathers):
@@ -54,7 +56,12 @@ class Missing_Child_Model:
 
     def compute_rmse_loss(self, batch_fathers, batch_mothers, mother_likedness_array, batch_children):
         model_output = self.forward_pass(batch_fathers, batch_mothers, mother_likedness_array)
-        return tf.sqrt(tf.reduce_mean(tf.square(model_output - batch_children)))
+        batch_children_aifs = self.LAEDR_model.encoder(batch_children)
+        return tf.sqrt(tf.reduce_mean(tf.square(model_output - batch_children_aifs)))
+
+    def compute_tf_triplet_loss(self, batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives):
+        pass
+
 
 
     def compute_triplet_loss(self, batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives):
@@ -67,32 +74,21 @@ class Missing_Child_Model:
         d_pos = tf.reduce_sum(tf.square(model_output - positive_child_aifs), 1)
         d_neg = tf.reduce_sum(tf.square(model_output - negative_child_aifs), 1)
 
-        triplet_loss_margin = tf.Variable(0.01, name="triplet_loss_margin")
+        triplet_loss_margin = tf.constant(0.70, name="triplet_loss_margin")
 
         triplet_loss = tf.maximum(0., triplet_loss_margin + d_pos - d_neg)
         triplet_loss = tf.reduce_mean(triplet_loss)
 
         return triplet_loss
 
-
-    # ANOTHER IDEA: classification cxent loss above some distance similarity threshold.
-    #i.e. if a vector is less than 0.4 distance units, then classified positive. Else negative.
-
-
-
     # train one batch. Returns the batch loss.
     def train_one_step(self, optimizer, batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives):
-    # TODO: also try RMSE loss of  the output and the child's AIF
-        """
-        runner = optimizer.minimize(lambda: self.compute_triplet_loss(batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives))
-        batch_loss = self.compute_triplet_loss(batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives)
-        """
         gradients, variables = zip(*optimizer.compute_gradients(lambda: self.compute_triplet_loss(batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives)))
         gradients, _ = tf.clip_by_global_norm(gradients, 5.0)
         optimizer.apply_gradients(zip(gradients, variables))
         batch_loss = self.compute_triplet_loss(batch_fathers, batch_mothers, mother_likedness_array, batch_child_positives, batch_child_negatives)
 
-        return batch_loss
+        return batch_loss 
 
 
 
@@ -109,11 +105,13 @@ class Missing_Child_Model:
             self.top_k_cache_id = cache_id
 
             child_aif = self.LAEDR_model.encoder(batch_children)
-            tf.stop_gradient(child_aif)
+            child_aif = tf.math.l2_normalize(child_aif, axis=1)
+            #tf.stop_gradient(child_aif)
             # child_aif is N x D, model_output is N x D as well. 
             # Need N by N matrix. Every model output needs a distance with a real child. Then compute top n.
 
             model_output = self.forward_pass(batch_fathers, batch_mothers, mother_likedness_array)
+            model_output = tf.math.l2_normalize(model_output, axis=1)
 
             model_output_squared_norms = tf.reduce_sum(tf.math.square(model_output), 1)
             child_aif_squared_norms = tf.reduce_sum(tf.math.square(child_aif), 1)
