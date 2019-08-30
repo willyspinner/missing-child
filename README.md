@@ -1,4 +1,5 @@
-
+# What is our project?
+We aim to reunite children with their parents after disaster. By equipping every shelter / disaster relief site with a node in the network and a camera, we use kinship verification technology to match children with their mother and father.
 
 # TODO
 Things we need to do:
@@ -6,9 +7,8 @@ Things we need to do:
 - [x] Visualize using tensorboard.
 - [x]  Finish train_model.py  and model.py
 - [x] Implement data loader class to load images from FIW / other dataset
-- [ ] Implement algorithm to sample (MF-C) pairs used in triplet pairs
-- [ ]  Design The backend
-- [ ]  Design The frontend
+- [x] Implement algorithm to sample (MF-C) pairs used in triplet pairs
+- [x] Fix training bug in tensorflow - (multiple forward passes result in weight update)
 
 # Papers used:
 
