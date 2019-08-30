@@ -20,7 +20,7 @@ def ScaleRotateTranslate(image, angle, center = None, new_center = None, scale =
 	nx,ny = x,y = center
 	sx=sy=1.0
 	if new_center:
-		(nx,ny) = new_center
+                (nx,ny) = new_center
 	if scale:
 		(sx,sy) = (scale, scale)
 	cosine = math.cos(angle)
@@ -190,11 +190,23 @@ class Data_reader():
 			random.shuffle(self.trainData)
 			self.trainPos = 0
 
-		batch = self.trainData[self.trainPos: self.trainPos+bsize]
-		self.trainPos += bsize
-		father_batch, mother_batch, mother_likedness, pos_child_batch, neg_children_batch = list(zip(*batch))
-		return father_batch, mother_batch, mother_likedness, pos_child_batch, neg_children_batch
+		#batch = self.trainData[self.trainPos: self.trainPos+bsize]
+                #TEMPDIS - check if model can overfit or not.
+		batch = self.trainData[0: bsize]
+		#self.trainPos += bsize
+		father_batch, mother_batch, mother_likedness, pos_child_batch, neg_child_batch = list(zip(*batch))
 
+                # convert from list of numpy arrays
+                father_batch = np.stack(father_batch, axis=0)
+                print("Father batch sum: {}".format(np.sum(father_batch)))
+                mother_batch = np.stack(mother_batch, axis=0)
+                print("mother batch sum: {}".format(np.sum(mother_batch)))
+                pos_child_batch = np.stack(pos_child_batch, axis=0)
+                print("pos_batch sum: {}".format(np.sum(pos_child_batch)))
+                neg_child_batch = np.stack(neg_child_batch, axis=0)
+                print("neg_child_batch sum: {}".format(np.sum(neg_child_batch)))
+                
+		return father_batch, mother_batch, mother_likedness, pos_child_batch, neg_child_batch
 
 
 	def get_next_test_batch(self,bsize):
@@ -206,6 +218,10 @@ class Data_reader():
 		self.testPos += bsize
 		
 		father_batch, mother_batch, mother_likedness, pos_child_batch,_ = list(zip(*batch))
+                father_batch = np.stack(father_batch, axis=0)
+                mother_batch = np.stack(mother_batch, axis=0)
+                pos_child_batch = np.stack(pos_child_batch, axis=0)
+
 		return father_batch, mother_batch, mother_likedness, pos_child_batch
 
 '''
