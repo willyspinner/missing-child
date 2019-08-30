@@ -190,21 +190,19 @@ class Data_reader():
 			random.shuffle(self.trainData)
 			self.trainPos = 0
 
-		#batch = self.trainData[self.trainPos: self.trainPos+bsize]
-                #TEMPDIS - check if model can overfit or not.
-		batch = self.trainData[0: bsize]
-		#self.trainPos += bsize
+		batch = self.trainData[self.trainPos: self.trainPos+bsize]
+		self.trainPos += bsize
 		father_batch, mother_batch, mother_likedness, pos_child_batch, neg_child_batch = list(zip(*batch))
 
                 # convert from list of numpy arrays
                 father_batch = np.stack(father_batch, axis=0)
-                print("Father batch sum: {}".format(np.sum(father_batch)))
+                #print("Father batch sum: {}".format(np.sum(father_batch)))
                 mother_batch = np.stack(mother_batch, axis=0)
-                print("mother batch sum: {}".format(np.sum(mother_batch)))
+                #print("mother batch sum: {}".format(np.sum(mother_batch)))
                 pos_child_batch = np.stack(pos_child_batch, axis=0)
-                print("pos_batch sum: {}".format(np.sum(pos_child_batch)))
+                #print("pos_batch sum: {}".format(np.sum(pos_child_batch)))
                 neg_child_batch = np.stack(neg_child_batch, axis=0)
-                print("neg_child_batch sum: {}".format(np.sum(neg_child_batch)))
+                #print("neg_child_batch sum: {}".format(np.sum(neg_child_batch)))
                 
 		return father_batch, mother_batch, mother_likedness, pos_child_batch, neg_child_batch
 
@@ -224,28 +222,33 @@ class Data_reader():
 
 		return father_batch, mother_batch, mother_likedness, pos_child_batch
 
-'''
-def main():
-	data_loader = Data_reader()
-	data_loader.set_traintest_split(0.7)
-	father_batch, mother_batch, mother_likedness, pos_child_batch, neg_children_batch = data_loader.get_next_train_batch(2)
-	for father in father_batch:
-		cv2.cv2.imshow('father', father)
-		cv2.cv2.waitKey(0)
-	for mother in mother_batch:
-		cv2.cv2.imshow('mother', mother)
-		cv2.cv2.waitKey(0)
-	for child in pos_child_batch:
-		cv2.cv2.imshow('child', child)
-		cv2.cv2.waitKey(0)
-	for neg_children in neg_children_batch:
-		for neg_c in neg_children:
-			cv2.cv2.imshow('neg_child', neg_c)
-			cv2.cv2.waitKey(0)
-	cv2.cv2.destroyAllWindows()
+
+# shuffles the batches such that we have a binary label vector of length 2N (1 for related, 0 for not), and three 2N x 128 x 128 x 3 matrices of batches (one for father, one for mother and one for child)
+# returns dad_Batch, mom_Batch, child_batch, labels
+def shuffle_batch(batch_fathers, batch_mothers, batch_pos_children, batch_neg_children):
+    # randomly permute the fathers with their positive children, and the same fathers with their negative children. This is to be shuffled by the use of the np.random.permutation, by using the same seed.
+    p = np.random.permutation(batch_fathers.shape[0] * 2) 
+    bf = np.tile(batch_fathers, (2,1,1,1))
+    bf = bf[p]
+    bm = np.tile(batch_mothers, (2,1,1,1))
+    bm = bm[p]
+    bc = np.vstack((batch_pos_children, batch_neg_children))
+    bc = bc[p]
+    labels = np.concatenate((np.ones(batch_fathers.shape[0]), np.zeros(batch_fathers.shape[0])))[p]
+    return bf, bm, bc, labels
+
+#NOTE: data_loader is an instance of the Data_loader class above
+def train_generator(data_loader, batch_size):
+    while True:
+        bf, bm, _, bpc, bnc = data_loader.get_next_train_batch(batch_size)
+        bf, bm, bc, labels = shuffle_batch(bf, bm, bpc, bnc)
+        yield [bf,bm,bc], labels
+
+def test_generator(data_loader, batch_size):
+    while True:
+        bf, bm, _, bpc, bnc = data_loader.get_next_test_batch(batch_size)
+        bf, bm, bc, labels = shuffle_batch(bf, bm, bpc, bnc)
+        yield [bf,bm,bc], labels
 
 
 
-if __name__ == "__main__":
-	main()
-'''

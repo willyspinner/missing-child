@@ -70,3 +70,18 @@ def create_model_v3():
     model = tf.keras.Model(inputs=[input_fathers, input_mothers, input_children], outputs=model_output) 
     return model
 
+# shuffles the batches such that we have a binary label vector of length 2N (1 for related, 0 for not), and three 2N x 128 x 128 x 3 matrices of batches (one for father, one for mother and one for child)
+# returns dad_Batch, mom_Batch, child_batch, labels
+def shuffle_to_train(batch_fathers, batch_mothers, batch_pos_children, batch_neg_children):
+    # randomly permute the fathers with their positive children, and the same fathers with their negative children. This is to be shuffled by the use of the np.random.permutation, by using the same seed.
+    p = np.random.permutation(batch_fathers.shape[0] * 2) 
+    bf = np.tile(batch_fathers, (2,1,1,1))
+    bf = bf[p]
+    bm = np.tile(batch_mothers, (2,1,1,1))
+    bm = bm[p]
+    bc = np.vstack((batch_pos_children, batch_neg_children))
+    bc = bc[p]
+
+    labels = np.concatenate((np.ones(batch_fathers.shape[0]), np.zeros(batch_fathers.shape[0])))[p]
+    return bf, bm, bc, labels
+
