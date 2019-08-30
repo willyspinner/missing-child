@@ -196,13 +196,9 @@ class Data_reader():
 
                 # convert from list of numpy arrays
                 father_batch = np.stack(father_batch, axis=0)
-                #print("Father batch sum: {}".format(np.sum(father_batch)))
                 mother_batch = np.stack(mother_batch, axis=0)
-                #print("mother batch sum: {}".format(np.sum(mother_batch)))
                 pos_child_batch = np.stack(pos_child_batch, axis=0)
-                #print("pos_batch sum: {}".format(np.sum(pos_child_batch)))
                 neg_child_batch = np.stack(neg_child_batch, axis=0)
-                #print("neg_child_batch sum: {}".format(np.sum(neg_child_batch)))
                 
 		return father_batch, mother_batch, mother_likedness, pos_child_batch, neg_child_batch
 
@@ -215,12 +211,12 @@ class Data_reader():
 		batch = self.testData[self.testPos: self.testPos+bsize]
 		self.testPos += bsize
 		
-		father_batch, mother_batch, mother_likedness, pos_child_batch,_ = list(zip(*batch))
+		father_batch, mother_batch, mother_likedness, pos_child_batch, neg_child_batch = list(zip(*batch))
                 father_batch = np.stack(father_batch, axis=0)
                 mother_batch = np.stack(mother_batch, axis=0)
                 pos_child_batch = np.stack(pos_child_batch, axis=0)
 
-		return father_batch, mother_batch, mother_likedness, pos_child_batch
+		return father_batch, mother_batch, mother_likedness, pos_child_batch, neg_child_batch
 
 
 # shuffles the batches such that we have a binary label vector of length 2N (1 for related, 0 for not), and three 2N x 128 x 128 x 3 matrices of batches (one for father, one for mother and one for child)
@@ -242,13 +238,13 @@ def train_generator(data_loader, batch_size):
     while True:
         bf, bm, _, bpc, bnc = data_loader.get_next_train_batch(batch_size)
         bf, bm, bc, labels = shuffle_batch(bf, bm, bpc, bnc)
-        yield [bf,bm,bc], labels
+        yield [bf, bm, bc], labels
 
 def test_generator(data_loader, batch_size):
     while True:
         bf, bm, _, bpc, bnc = data_loader.get_next_test_batch(batch_size)
         bf, bm, bc, labels = shuffle_batch(bf, bm, bpc, bnc)
-        yield [bf,bm,bc], labels
+        yield [bf, bm, bc], labels
 
 
 
