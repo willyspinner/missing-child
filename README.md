@@ -7,7 +7,7 @@ The hypothesis of this project is that the age-invariant features of children ar
 # Architecture
 We utilize transfer learning by extracting age-invariant features from the mother, father and child. We learn a comparison function by the use of fully-connected and concatenation layer. Our approach is to compare the father and child, and the mother and child. Then, these comparisons are concatenated, and are inferred from to obtain a final relatedness score (0-1).
 
-![Network Architecture ](https://github.com/willyspinner/missing-child/raw/master/missing%20child%20network.jpg)
+![Network Architecture ](https://docs.google.com/drawings/d/e/2PACX-1vQ8U3VpxiEMBZjwiohKaD9AMxnCiTWgx9hjdq3mOVeJMTNZXeq1EE2O1RuOsnaRiq9kpmHpK7mpxr1E/pub?w=960&h=720)
 
 # TODO
 Things we need to do:
