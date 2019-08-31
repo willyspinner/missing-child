@@ -23,9 +23,33 @@ class LAEDR_AIM(laedrM.Model):
 LAEDR_model = None
 
 
+# we build a keras layer for our LAEDR model.
+class Laedr_layer(tf.compat.v1.keras.layers.Layer):
+    def __init__(self, encoder):
+        self.encoder =encoder  
+        self.trainable = False
+        super(Laedr_layer, self).__init__(
+            trainable=False,
+            name=None,
+            dtype=None,
+            dynamic=False
+        )
+
+
+    def build(self, input_shape):
+        super(Laedr_layer, self).build(input_shape)
+
+    def call(self, x):
+        return self.encoder(x)
+
+
+
+
+
 def create_model_v3():
     global LAEDR_model
     LAEDR_model = LAEDR_AIM()
+    LAEDR_model.encoder.trainable = False
 
     input_mothers = tf.keras.Input(shape=(128, 128, 3))
     input_fathers = tf.keras.Input(shape=(128, 128, 3))
@@ -35,7 +59,6 @@ def create_model_v3():
     mother_aif = LAEDR_model.encoder(input_mothers)
     father_aif = LAEDR_model.encoder(input_fathers)
     child_aif = LAEDR_model.encoder(input_children)
-
 
 
     # cm net: concat child and mother, and add dense layers

@@ -267,6 +267,7 @@ class Saver():
 			else:
 				self.ckpt.restore(path)
 			print('Finish loading missing child model.')
+                        return last_ckpt
 		except Exception as e:
 			print('Model restore failed, Exception:',e)
 			print('Model will auto-initialize after first iteration.')
