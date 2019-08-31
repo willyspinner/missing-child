@@ -204,7 +204,7 @@ class Data_reader():
 
 
 	def get_next_test_batch(self,bsize):
-		if self.trainPos + bsize > len(self.testData):
+		if self.testPos + bsize > len(self.testData):
 			random.shuffle(self.testData)
 			self.testPos = 0
 

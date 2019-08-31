@@ -12,11 +12,12 @@ config.gpu_options.allow_growth=True
 tf.compat.v1.enable_eager_execution(config=config)
 set_session(tf.get_default_session())
 
-EPOCHS = 1200
-BATCHES_PER_EPOCH = 20
-BATCH_SIZE = 50  # this is the amount of samples for each M, F, CP, CN to be considered at each step. Note that because each MF pair has a positive and negative child, the training set batch size is actually 2 * BATCH_SIZE.
 
 TF_DEVICE=os.getenv("TF_DEVICE") if os.getenv("TF_DEVICE") is not None else "GPU:0"
+
+EPOCHS = 2400
+BATCHES_PER_EPOCH = 20
+BATCH_SIZE = 50  # this is the amount of samples for each M, F, CP, CN to be considered at each step. Note that because each MF pair has a positive and negative child, the training set batch size is actually 2 * BATCH_SIZE.
 
 learning_rate = float(os.getenv("LEARNING_RATE")) if os.getenv("LEARNING_RATE") is not None else 0.0001
 
@@ -41,7 +42,6 @@ class ModelCheckpointer(tf.keras.callbacks.Callback):
             self.model_saver.save(os.path.join(CKPT_FOLDER, WEIGHTS_CKPT_FORMAT.format(epoch=epoch, val_loss=logs["val_loss"])))
 
 
-
 print("using tf device {}, learning rate {}".format(TF_DEVICE, learning_rate))
 
 tboard_logdir="./tboard_logs"
@@ -63,6 +63,7 @@ if __name__=='__main__':
 
     data_loader = data.Data_reader()
     data_loader.set_traintest_split(0.75)
+    print("data_loader training set samples: {}, test set samples:{}".format(len(data_loader.trainData), len(data_loader.testData)))
 
 
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tboard_logdir)
@@ -71,8 +72,8 @@ if __name__=='__main__':
     with tf.device(TF_DEVICE):
         mcm_model.fit_generator(
             data.train_generator(data_loader, BATCH_SIZE), 
-            validation_data=data.test_generator(data_loader, BATCH_SIZE),
-            validation_steps=10, 
+            validation_data=data.test_generator(data_loader, len(data_loader.testData)), #test with the whole testing set, because it is not large.
+            validation_steps=1, 
             validation_freq=5,# how many training epochs before we validate.
             epochs=EPOCHS, 
             steps_per_epoch=BATCHES_PER_EPOCH,
@@ -81,7 +82,7 @@ if __name__=='__main__':
         )
 
         mcm_model.evaluate_generator(
-            data.test_generator(data_loader, BATCH_SIZE)
+            data.test_generator(data_loader, len(data_loader.testData))
         )
 
 
