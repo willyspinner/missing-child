@@ -1,6 +1,14 @@
 # What is our project?
 We aim to reunite children with their parents after disaster. By equipping every shelter / disaster relief site with a node in the network and a camera, we use kinship verification technology to match children with their mother and father.
 
+# Hypothesis
+The hypothesis of this project is that the age-invariant features of children are inherited from parents. By inferring from these features, we may tell whether a child is related to a father-mother pair.
+
+# Architecture
+We utilize transfer learning by extracting age-invariant features from the mother, father and child. We learn a comparison function by the use of fully-connected and concatenation layer. Our approach is to compare the father and child, and the mother and child. Then, these comparisons are concatenated, and are inferred from to obtain a final relatedness score (0-1).
+
+![Network Architecture ](https://github.com/willyspinner/missing-child/raw/master/missing%20child%20network.jpg)
+
 # TODO
 Things we need to do:
 - [x] Implement more loss functions if needed (e.g. crossentropy?)
