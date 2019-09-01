@@ -9,6 +9,8 @@ We utilize transfer learning by extracting age-invariant features from the mothe
 
 ![Network Architecture ](https://docs.google.com/drawings/d/e/2PACX-1vQ8U3VpxiEMBZjwiohKaD9AMxnCiTWgx9hjdq3mOVeJMTNZXeq1EE2O1RuOsnaRiq9kpmHpK7mpxr1E/pub?w=960&h=720)
 
+# results
+`84.47%` Validation accuracy on FIW dataset, obtained using a `0.0001 learning rate`, Reducing LR on plateau after a patience of `75`, and `2400` epochs. 
 # TODO
 Things we need to do:
 - [x] Implement more loss functions if needed (e.g. crossentropy?)
