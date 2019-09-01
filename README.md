@@ -17,6 +17,7 @@ Things we need to do:
 - [x] Implement data loader class to load images from FIW / other dataset
 - [x] Implement algorithm to sample (MF-C) pairs used in triplet pairs
 - [x] Fix training bug in tensorflow - (multiple forward passes result in weight update)
+- [ ] Try reducing LR on plateau after 80 epochs
 
 # Papers used:
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+from tensorflow.python.keras.backend import set_session
+from tensorflow.keras.callbacks import ReduceLROnPlateau
 import tensorflow as tf
 import os
 import numpy as np
-from tensorflow.python.keras.backend import set_session
 from laedr.modeleag import Saver
 from model_v3 import create_model_v3
 import data_loader as data
@@ -28,17 +29,16 @@ CKPT_PREFIX = "v3_weights"
 WEIGHTS_CKPT_FORMAT = CKPT_PREFIX + ".{epoch:02d}-{val_loss:.2f}." + CKPT_EXTENSION
 
 class ModelCheckpointer(tf.keras.callbacks.Callback):
-    def __init__(self, model_saver, save_freq=1):
+    def __init__(self, model_saver, save_freq=1, epoch_start=0):
         super(ModelCheckpointer,self).__init__()
         self.model_saver = model_saver
         self.save_freq = save_freq
-        self.epochs_elapsed = 0
+        self.epochs_elapsed = epoch_start
 
     def on_epoch_end(self, epoch, logs={}):
         self.epochs_elapsed += 1
         if self.epochs_elapsed % self.save_freq == 0:
-            print("saving model", logs)
-            print("val loss: ", logs["val_loss"])
+            print("val loss: ", logs["val_loss"], ", val acc: ", logs["val_acc"])
             self.model_saver.save(os.path.join(CKPT_FOLDER, WEIGHTS_CKPT_FORMAT.format(epoch=epoch, val_loss=logs["val_loss"])))
 
 
@@ -49,7 +49,7 @@ tboard_logdir="./tboard_logs"
 if __name__=='__main__':
     mcm_model = create_model_v3() 
 
-    optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
+    optimizer = tf.keras.optimizers.Adam(lr=learning_rate) 
     initial_epoch = 0 
     model_saver = Saver(mcm_model, optimizer)
     if os.path.isdir(CKPT_FOLDER):
@@ -59,15 +59,23 @@ if __name__=='__main__':
             initial_epoch = int(ckpt_path.split(CKPT_PREFIX+".")[1].split("-")[0])
 
     mcm_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
-    print("model instantiated")
 
     data_loader = data.Data_reader()
     data_loader.set_traintest_split(0.75)
+
     print("data_loader training set samples: {}, test set samples:{}".format(len(data_loader.trainData), len(data_loader.testData)))
 
-
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tboard_logdir)
-    model_checkpoint_callback = ModelCheckpointer(model_saver, save_freq=5)
+    model_checkpoint_callback = ModelCheckpointer(model_saver, save_freq=5, epoch_start=initial_epoch)
+
+    lr_reduce_callback = ReduceLROnPlateau(
+        monitor='loss',  # monitor our training loss. Could also be val_loss
+        factor=0.35, 
+        patience=75, 
+        verbose=1,
+        mode="min",
+        min_lr=learning_rate*0.001
+    )
 
     with tf.device(TF_DEVICE):
         mcm_model.fit_generator(
@@ -77,12 +85,13 @@ if __name__=='__main__':
             validation_freq=5,# how many training epochs before we validate.
             epochs=EPOCHS, 
             steps_per_epoch=BATCHES_PER_EPOCH,
-            callbacks=[tensorboard_callback, model_checkpoint_callback],
+            callbacks=[lr_reduce_callback, tensorboard_callback, model_checkpoint_callback],
             initial_epoch=initial_epoch
         )
 
         mcm_model.evaluate_generator(
-            data.test_generator(data_loader, len(data_loader.testData))
+            data.test_generator(data_loader, len(data_loader.testData)),
+            steps=1
         )
 
 
