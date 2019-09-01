@@ -12,8 +12,8 @@ We utilize transfer learning by extracting age-invariant features from the mothe
 # results
 
 |Dataset| Model| Validation Acc| Validation Loss| Training Acc| starting LR| Epochs| Batch size| Batches per epoch| Notes| Weights filename|
-|-|-|-|-|-|-|-|-|-|-|
-|FIW|`model_v3`|`86.57%`|`0.495`|`99.05%`|`0.0001`| `2134`| `50` Fathr-Mother-Cpos-Cneg pairs | 20| Reduced LR on plateau after a patience of `75` epochs| `src/ml/saved_model_weights/v3_weights.2134-0.50.hdf5`|
+|-|-|-|-|-|-|-|-|-|-|-|
+|FIW|`model_v3`|`86.57%`|`0.495`|`99.05%`|`0.0001`| `2134`| `50` F-M-C(+)-C(-) pairs | 20| Reduced LR on plateau after a patience of `75` epochs| `src/ml/saved_model_weights/v3_weights.2134-0.50.hdf5`|
 
 Note: to use the model weights, you must point the model saver (see `train_model_v3.py`) to the location of the weights.
 
