@@ -16,7 +16,7 @@ set_session(tf.get_default_session())
 
 TF_DEVICE=os.getenv("TF_DEVICE") if os.getenv("TF_DEVICE") is not None else "GPU:0"
 
-EPOCHS = 2400
+EPOCHS = 4800
 BATCHES_PER_EPOCH = 20
 BATCH_SIZE = 50  # this is the amount of samples for each M, F, CP, CN to be considered at each step. Note that because each MF pair has a positive and negative child, the training set batch size is actually 2 * BATCH_SIZE.
 
